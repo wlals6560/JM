@@ -1,15 +1,10 @@
-/**
- * @license
- * SPDX-License-Identifier: Apache-2.0
- */
-
-import React, { useState, useEffect } from 'react';
-import { 
-  Search, 
-  TrendingUp, 
-  ThumbsUp, 
-  ThumbsDown, 
-  MessageSquare, 
+import React, { useState } from 'react';
+import {
+  Search,
+  TrendingUp,
+  ThumbsUp,
+  ThumbsDown,
+  MessageSquare,
   ExternalLink,
   Loader2,
   BarChart3,
@@ -18,11 +13,11 @@ import {
   Globe,
   MapPin
 } from 'lucide-react';
-import { 
-  PieChart, 
-  Pie, 
-  Cell, 
-  ResponsiveContainer, 
+import {
+  PieChart,
+  Pie,
+  Cell,
+  ResponsiveContainer,
   Tooltip as RechartsTooltip,
   Legend
 } from 'recharts';
@@ -71,7 +66,6 @@ const RegionSection = ({ title, icon, data, colorClass }: RegionSectionProps) =>
         <h2 className="text-2xl font-bold tracking-tight">{title} 동향 분석</h2>
       </div>
 
-      {/* Summary & Sentiment */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
         <div className="lg:col-span-2 bg-white p-6 rounded-2xl border border-slate-200 shadow-sm">
           <div className="flex items-center gap-2 mb-4">
@@ -99,7 +93,7 @@ const RegionSection = ({ title, icon, data, colorClass }: RegionSectionProps) =>
                   outerRadius={80}
                   paddingAngle={5}
                   dataKey="value"
-                  label={({ name, percent }) => `${(percent * 100).toFixed(0)}%`}
+                  label={({ percent }) => `${(percent * 100).toFixed(0)}%`}
                 >
                   {sentimentData.map((entry, index) => (
                     <Cell key={`cell-${index}`} fill={entry.color} />
@@ -113,7 +107,6 @@ const RegionSection = ({ title, icon, data, colorClass }: RegionSectionProps) =>
         </div>
       </div>
 
-      {/* Hot Topics Grid */}
       <section>
         <div className="flex items-center gap-2 mb-6">
           <Zap className="w-6 h-6 text-orange-500 fill-orange-500" />
@@ -124,13 +117,17 @@ const RegionSection = ({ title, icon, data, colorClass }: RegionSectionProps) =>
             <div key={idx} className="bg-white p-6 rounded-2xl border border-slate-200 shadow-sm hover:shadow-md transition-shadow group">
               <div className="flex justify-between items-start mb-3">
                 <div className="flex items-center gap-2">
-                  <span className="text-xs font-bold text-indigo-600 uppercase tracking-wider bg-indigo-50 px-2 py-1 rounded">Topic {idx + 1}</span>
-                  <span className={cn(
-                    "text-[10px] font-bold px-2 py-0.5 rounded-full uppercase",
-                    topic.sentiment === 'positive' 
-                      ? "bg-blue-100 text-blue-600 border border-blue-200" 
-                      : "bg-rose-100 text-rose-600 border border-rose-200"
-                  )}>
+                  <span className="text-xs font-bold text-indigo-600 uppercase tracking-wider bg-indigo-50 px-2 py-1 rounded">
+                    Topic {idx + 1}
+                  </span>
+                  <span
+                    className={cn(
+                      "text-[10px] font-bold px-2 py-0.5 rounded-full uppercase",
+                      topic.sentiment === 'positive'
+                        ? "bg-blue-100 text-blue-600 border border-blue-200"
+                        : "bg-rose-100 text-rose-600 border border-rose-200"
+                    )}
+                  >
                     {topic.sentiment === 'positive' ? '긍정' : '부정'}
                   </span>
                 </div>
@@ -146,7 +143,6 @@ const RegionSection = ({ title, icon, data, colorClass }: RegionSectionProps) =>
         </div>
       </section>
 
-      {/* Sentiment Details */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
         <div className="bg-emerald-50/50 p-6 rounded-2xl border border-emerald-100">
           <div className="flex items-center gap-2 mb-6 text-emerald-700">
@@ -183,35 +179,39 @@ const RegionSection = ({ title, icon, data, colorClass }: RegionSectionProps) =>
 };
 
 export default function App() {
-  const [gameName, setGameName] = useState('Elden Ring');
+  const [gameName, setGameName] = useState('');
   const [loading, setLoading] = useState(false);
   const [analysis, setAnalysis] = useState<TrendAnalysis | null>(null);
   const [error, setError] = useState<string | null>(null);
 
   const handleSearch = async (e?: React.FormEvent) => {
     if (e) e.preventDefault();
-    if (!gameName.trim()) return;
+    if (!gameName.trim() || loading) return;
 
     setLoading(true);
     setError(null);
+
     try {
       const result = await analyzeGameTrends(gameName);
       setAnalysis(result);
-    } catch (err) {
+    } catch (err: any) {
       console.error(err);
-      setError('동향 분석 중 오류가 발생했습니다. 다시 시도해주세요.');
+
+      const message = String(err?.message || '');
+      if (message.includes('429') || message.includes('RESOURCE_EXHAUSTED')) {
+        setError('현재 AI 분석 요청 한도를 초과했습니다. 잠시 후 다시 시도해주세요.');
+      } else if (message.includes('너무 빠르게')) {
+        setError(message);
+      } else {
+        setError('동향 분석 중 오류가 발생했습니다. 다시 시도해주세요.');
+      }
     } finally {
       setLoading(false);
     }
   };
 
-  useEffect(() => {
-    handleSearch();
-  }, []);
-
   return (
     <div className="min-h-screen bg-[#f8fafc] text-slate-900 font-sans">
-      {/* Header */}
       <header className="bg-white border-b border-slate-200 sticky top-0 z-10">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between">
           <div className="flex items-center gap-2">
@@ -220,7 +220,7 @@ export default function App() {
             </div>
             <h1 className="text-xl font-bold tracking-tight text-slate-900">GameTrend Insight</h1>
           </div>
-          
+
           <form onSubmit={handleSearch} className="flex-1 max-w-md mx-4">
             <div className="relative">
               <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
@@ -235,7 +235,9 @@ export default function App() {
           </form>
 
           <div className="hidden sm:flex items-center gap-4 text-sm font-medium text-slate-500">
-            <span className="flex items-center gap-1"><Calendar className="w-4 h-4" /> 주간 리포트</span>
+            <span className="flex items-center gap-1">
+              <Calendar className="w-4 h-4" /> 주간 리포트
+            </span>
           </div>
         </div>
       </header>
@@ -251,17 +253,17 @@ export default function App() {
         {loading ? (
           <div className="flex flex-col items-center justify-center py-24 gap-4">
             <Loader2 className="w-12 h-12 text-indigo-600 animate-spin" />
-            <p className="text-slate-500 font-medium animate-pulse">한국 및 글로벌 커뮤니티 데이터를 분석하는 중입니다...</p>
+            <p className="text-slate-500 font-medium animate-pulse">
+              한국 및 글로벌 커뮤니티 데이터를 분석하는 중입니다...
+            </p>
           </div>
         ) : analysis ? (
           <div className="space-y-16">
-            {/* Main Title with Background Image */}
             <div className="relative overflow-hidden rounded-3xl animate-in fade-in duration-1000 min-h-[320px] flex items-center justify-center bg-slate-900">
-              {/* Background Image with Dimmed Overlay */}
               <div className="absolute inset-0 z-0">
                 {analysis.gameImageUrl && (
-                  <img 
-                    src={analysis.gameImageUrl} 
+                  <img
+                    src={analysis.gameImageUrl}
                     alt={analysis.gameTitle}
                     className="w-full h-full object-cover opacity-60"
                     referrerPolicy="no-referrer"
@@ -273,7 +275,6 @@ export default function App() {
                 <div className="absolute inset-0 bg-gradient-to-b from-slate-900/40 via-slate-900/60 to-slate-900/90" />
               </div>
 
-              {/* Title Content */}
               <div className="relative z-10 py-16 px-6 text-center space-y-4">
                 <h2 className="text-4xl font-extrabold tracking-tight text-white sm:text-5xl drop-shadow-lg">
                   <span className="text-indigo-400">{analysis.gameTitle}</span>
@@ -294,25 +295,22 @@ export default function App() {
               </div>
             </div>
 
-            {/* Korea Section */}
-            <RegionSection 
-              title="한국" 
-              icon={<MapPin className="w-8 h-8 text-blue-600" />} 
+            <RegionSection
+              title="한국"
+              icon={<MapPin className="w-8 h-8 text-blue-600" />}
               data={analysis.korea}
               colorClass="bg-blue-50 border-blue-100 text-blue-900"
             />
 
             <div className="h-px bg-slate-200" />
 
-            {/* Global Section */}
-            <RegionSection 
-              title="글로벌" 
-              icon={<Globe className="w-8 h-8 text-indigo-600" />} 
+            <RegionSection
+              title="글로벌"
+              icon={<Globe className="w-8 h-8 text-indigo-600" />}
               data={analysis.global}
               colorClass="bg-indigo-50 border-indigo-100 text-indigo-900"
             />
 
-            {/* Sources */}
             {analysis.sources.length > 0 && (
               <section className="pt-8 border-t border-slate-200">
                 <div className="flex items-center gap-2 mb-4 text-slate-500">
